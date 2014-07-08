@@ -79,19 +79,27 @@ def cfg_to_args(path='setup.cfg'):
     parser = RawConfigParser()
     parser.read(path)
 
+    # pure distutils2 parts
     config = defaultdict(dict)
     for (section, option), _, func in D2TO1:
         if parser.has_option(section, option):
             config[section][option] = func(parser, (section, option))
 
-    # play with setup_hook
     if parser.has_option('global', 'setup_hook'):
         for target in multi_type(parser, ('global', 'setup_hook')):
             module_name, func = target.rsplit('.', 1)
             module = import_module(module_name)
             getattr(module, func)(config)
 
-    return dist2_to_args(config)
+    # convert to distutils
+    dist1 = dist2_to_args(config)
+
+    # addendum to distutils entry_points
+    if parser.has_section('entry_points'):
+        dist1.setdefault('entry_points', {})
+        for name in parser.options('entry_points'):
+            dist1['entry_points'][name] = multi_type(parser, ('entry_points', name))
+    return dist1
 
 
 def dist2_to_args(data):
