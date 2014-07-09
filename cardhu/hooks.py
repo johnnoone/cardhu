@@ -7,8 +7,8 @@ def setup_hook(config):
 
 
 def pre_develop(cmd):
-    pass
+    log.info('pre_develop hook %s', cmd.get_command_name())
 
 
 def pre_install(cmd):
-    pass
+    log.info('pre_install hook %s', cmd.get_command_name())

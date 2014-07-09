@@ -324,6 +324,11 @@ def wrap_commands(dist1, dist):
     # override every commands with pre/post hook dispatching
     dist1.setdefault('cmdclass', {})
 
+    subparser = RawConfigParser()
+    subparser.read(os.path.abspath('../setup.cfg'))
+
+    print(subparser.sections())
+
     commands = set(command_list)
     commands.update(cmd for cmd, _ in dist.get_command_list())
     commands.update(dist1['cmdclass'].keys())
@@ -334,11 +339,21 @@ def wrap_commands(dist1, dist):
             cls = dist.get_command_class(cmd)
         pre_hook = getattr(cls, 'pre_hook', {})
         post_hook = getattr(cls, 'post_hook', {})
+        # already defined hooks
         for key, value in dist.get_option_dict(cmd).items():
             if key.startswith('pre_hook.'):
                 pre_hook[key[9:]] = value
-            elif key.startswith('pre_hook.'):
+            elif key.startswith('post_hook.'):
                 post_hook[key[9:]] = value
+
+        # reinject local hooks
+        if subparser.has_section(cmd):
+            for key, value in subparser.items(cmd):
+                if key.startswith('pre-hook.'):
+                    pre_hook[key[9:]] = ('cardhu:setup.cfg', value)
+                elif key.startswith('post-hook.'):
+                    post_hook[key[9:]] = ('cardhu:setup.cfg', value)
+
         dist1['cmdclass'][cmd] = hook_command(cls, pre_hook, post_hook)
 
 
