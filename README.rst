@@ -83,6 +83,8 @@ Implementation
         [install]
         pre-hook.project = myhooks.my_install_hook
 
+-   parsed config use https://docs.python.org/2/library/configparser.html#ConfigParser.SafeConfigParser
+    so magic interpolation.
 
 Distutils2
 ----------

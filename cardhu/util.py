@@ -160,6 +160,9 @@ def parse_entry_points(parser, dist1):
     if ep:
         dist1.setdefault('entry_points', {})
         dist1['entry_points'].update(ep)
+    print('----')
+    print(dist1['entry_points'])
+    print('----')
 
 
 def parse_extension(parser, dist1):
@@ -317,7 +320,8 @@ def wrap_commands(dist1, dist):
     dist1.setdefault('cmdclass', {})
 
     subparser = ConfigParser()
-    subparser.read(os.path.abspath('../setup.cfg'))
+    here = os.path.abspath(os.path.dirname(__file__))
+    subparser.read(os.path.join(here, 'common.cfg'))
 
     print(subparser.sections())
 
