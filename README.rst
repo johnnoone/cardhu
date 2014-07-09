@@ -2,7 +2,7 @@ cardhu
 ======
 
 Setup tools extension, that can talks Distutils2_ setup.cfg, pip requirements file ...
-
+This project is largely inspired by the d2to1_ library.
 
 Usage
 -----
@@ -93,3 +93,4 @@ Pip and wheels
 .. _Distutils2: https://pythonhosted.org/Distutils2/distutils/commandhooks.html
 .. _`environment markers`: http://legacy.python.org/dev/peps/pep-0345/#environment-markers
 .. _`setup.cfg`: http://alexis.notmyidea.org/distutils2/setupcfg.html
+.. _d2to1: https://pypi.python.org/pypi/d2to1
