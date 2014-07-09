@@ -26,7 +26,12 @@ Incompatibilities:
 Currently implemented:
 
 - some of the distutils2 keywords
-- entry_points backport from distutil
+- entry_points backport from distutils::
+
+    [entry_points]
+    distutils.setup_keywords =
+      cardhu = cardhu.core:cardhu
+
 
 
 Usage
