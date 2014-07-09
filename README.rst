@@ -21,6 +21,7 @@ Goals:
 Incompatibilities:
 
 -   distutils2 do not support extra_require keyword (https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies)
+-   Options with `environment markers`_ are not implemented yet.
 
 
 Currently implemented:
@@ -86,3 +87,4 @@ Pip and wheels
 
 
 .. _Distutils2: https://pythonhosted.org/Distutils2/distutils/commandhooks.html
+.. _`environment markers`: http://legacy.python.org/dev/peps/pep-0345/#environment-markers

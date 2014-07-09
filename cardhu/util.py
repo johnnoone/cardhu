@@ -10,10 +10,6 @@ from collections import defaultdict
 from setuptools.command import __all__ as command_list
 from setuptools.dist import Distribution
 from setuptools.extension import Extension
-try:
-    from configparser import RawConfigParser
-except ImportError:
-    from ConfigParser import RawConfigParser
 
 try:
     from importlib import import_module
@@ -21,26 +17,22 @@ except ImportError:
     pass
 from contextlib import contextmanager
 from .errors import LoadError
-
+from .parsing import ConfigParser
 
 def string_type(parser, src):
     return parser.get(*src)
 
 
 def multi_type(parser, src):
-    elements = parser.get(*src)
-    return [element.strip() for element in elements.strip().split('\n')]
+    return parser.getmulti(*src)
 
 
 def file_type(parser, src):
-    with open(parser.get(*src), 'r') as file:
-        return file.read()
+    return parser.getfile(*src)
 
 
 def comma_type(parser, src):
-    elements = parser.get(*src)
-    splitter = ',' if ',' in elements else None
-    return [element.strip() for element in elements.split(splitter)]
+    return parser.getcsv(*src)
 
 
 def assign(name):
@@ -210,7 +202,7 @@ def cfg_to_args(path='setup.cfg', dist=None):
 
     dist = dist or Distribution()
 
-    parser = RawConfigParser()
+    parser = ConfigParser()
     parser.read(path)
 
     # pure distutils2 parts
@@ -324,7 +316,7 @@ def wrap_commands(dist1, dist):
     # override every commands with pre/post hook dispatching
     dist1.setdefault('cmdclass', {})
 
-    subparser = RawConfigParser()
+    subparser = ConfigParser()
     subparser.read(os.path.abspath('../setup.cfg'))
 
     print(subparser.sections())
