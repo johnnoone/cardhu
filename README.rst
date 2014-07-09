@@ -40,18 +40,18 @@ Implementation
 -   use Distutils2_ `setup.cfg`_ files
 -   python setup.py install will find and use the first of these files
 
-        1.  requirements-{target_version}.txt
-        2.  requirements.txt
+    1.  requirements-{target_version}.txt
+    2.  requirements.txt
 
 -   python setup.py develop will find and use the first of these files
 
-        1.  requirements-dev-{target_version}.txt
-        2.  requirements-dev.txt
+    1.  requirements-dev-{target_version}.txt
+    2.  requirements-dev.txt
 
 -   python setup.py test will find and use the first of these files
 
-        1.  requirements-test-{target_version}.txt
-        2.  requirements-test.txt
+    1.  requirements-test-{target_version}.txt
+    2.  requirements-test.txt
 
 -   extends the -r keyword to git and mercurial in order to create the last revision number (https://pythonhosted.org/setuptools/setuptools.html#tagging-and-daily-build-or-snapshot-releases)
 
