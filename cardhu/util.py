@@ -2,9 +2,12 @@
 from functools import partial
 import os.path
 import sys
+from distutils.errors import DistutilsError
 from distutils.errors import DistutilsFileError
+from distutils.errors import DistutilsModuleError
 from distutils import log
 from collections import defaultdict
+from setuptools.command import __all__ as command_list
 from setuptools.dist import Distribution
 from setuptools.extension import Extension
 try:
@@ -17,6 +20,7 @@ try:
 except ImportError:
     pass
 from contextlib import contextmanager
+from .errors import LoadError
 
 
 def string_type(parser, src):
@@ -148,6 +152,8 @@ def load(target):
     name, _, attr = target.rpartition('.')
     try:
         module = import_module(name)
+    except (ValueError, LoadError):
+        raise LoadError('module {!r} does not exists'.format(target))
     except ImportError:
         module = load(name)
     return getattr(module, attr)
@@ -231,7 +237,7 @@ def cfg_to_args(path='setup.cfg', dist=None):
 
     # addendum to distutils extension:*
     parse_extension(parser, dist1)
-
+    wrap_commands(dist1, dist)
     return dist1
 
 
@@ -310,3 +316,80 @@ def register_custom_compilers(config):
 
         # Distutils assumes all compiler modules are in the distutils package
         sys.modules['distutils.' + module_name] = sys.modules[module_name]
+
+
+def wrap_commands(dist1, dist):
+    dist.parse_config_files()
+
+    # override every commands with pre/post hook dispatching
+    dist1.setdefault('cmdclass', {})
+
+    commands = set(command_list)
+    commands.update(cmd for cmd, _ in dist.get_command_list())
+    commands.update(dist1['cmdclass'].keys())
+    for cmd in sorted(commands):
+        try:
+            cls = dist1['cmdclass'][cmd]
+        except KeyError:
+            cls = dist.get_command_class(cmd)
+        pre_hook = getattr(cls, 'pre_hook', {})
+        post_hook = getattr(cls, 'post_hook', {})
+        for key, value in dist.get_option_dict(cmd).items():
+            if key.startswith('pre_hook.'):
+                pre_hook[key[9:]] = value
+            elif key.startswith('pre_hook.'):
+                post_hook[key[9:]] = value
+        dist1['cmdclass'][cmd] = hook_command(cls, pre_hook, post_hook)
+
+
+def hook_command(cls, pre_hook, post_hook):
+    if issubclass(cls, HookedCommand):
+        cls.pre_hook.update(pre_hook)
+        cls.post_hook.update(post_hook)
+    else:
+        name = cls.__name__
+        cls = type(name, (HookedCommand, cls, object), {
+            'pre_hook': pre_hook, 'post_hook': post_hook
+        })
+    return cls
+
+
+class HookedCommand(object):
+    pre_hook = {}
+    post_hook = {}
+
+    def run(self):
+        self.run_hook('pre_hook')
+        super(HookedCommand, self).run()
+        self.run_hook('post_hook')
+
+    def run_hook(self, hookname):
+        hooks = getattr(self, hookname, {})
+        for alias, (src, module) in hooks.items():
+            try:
+                func = load(module)
+            except ImportError as error:
+                raise DistutilsModuleError('cannot find hook %s.%s: %s' %
+                                           (hookname, alias, error))
+
+            log.info('running %s.%s for command %s',
+                     hookname, alias, self.get_command_name())
+            try:
+                func(self)
+            except Exception as error:
+                raise DistutilsError('cannot run hook %s.%s: %s' %
+                                     (hookname, alias, error))
+
+    def __getattr__(self, name):
+        if name.startswith('post_hook.'):
+            return self.post_hook.get(name[10:], (None, None))
+        if name.startswith('pre_hook.'):
+            return self.pre_hook.get(name[9:], (None, None))
+        return super(HookedCommand, self).__getattr__(name)
+
+    def __setattr__(self, name, value):
+        if name.startswith('post_hook.'):
+            return self.post_hook.update({name[10:]: (None, value)})
+        if name.startswith('pre_hook.'):
+            self.pre_hook.update({name[9:]: (None, value)})
+        return super(HookedCommand, self).__setattr__(name, value)

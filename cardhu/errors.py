@@ -1,0 +1,3 @@
+
+class LoadError(ImportError):
+    pass

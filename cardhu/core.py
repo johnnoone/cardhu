@@ -1,6 +1,8 @@
 from distutils import log
 from distutils.errors import DistutilsSetupError
 from .util import cfg_to_args
+from .coll import DefaultGetDict, IgnoreDict
+
 
 finalized = set()
 
@@ -45,3 +47,6 @@ def cardhu(dist, attr, value):
 
     # Re-finalize the underlying Distribution
     dist.finalize_options()
+
+    ignore = ['pre_hook.*', 'post_hook.*']
+    dist.command_options = DefaultGetDict(lambda: IgnoreDict(ignore))

@@ -1,37 +1,48 @@
 cardhu
 ======
 
-Setup tools extension, that can talks distutils2 setup.cfg, pip requirements file ...
+Setup tools extension, that can talks Distutils2_ setup.cfg, pip requirements file ...
 
 
 Goals:
 
-- use distutils2 setup.cfg files
-- python setup.py install will find and use the first of these files:
-    1. requirements-{target_version}.txt
-    2. requirements.txt
-- python setup.py develop will find and use the first of these files:
-    1. requirements-dev-{target_version}.txt
-    2. requirements-dev.txt
-- python setup.py test will find and use the first of these files:
-    1. requirements-test-{target_version}.txt
-    2. requirements-test.txt
-- extends the -r keyword to git and mercurial in order to create the last revision number (https://pythonhosted.org/setuptools/setuptools.html#tagging-and-daily-build-or-snapshot-releases)
+-   use distutils2 setup.cfg files
+-   python setup.py install will find and use the first of these files:
+    1.  requirements-{target_version}.txt
+    2.  requirements.txt
+-   python setup.py develop will find and use the first of these files:
+    1.  requirements-dev-{target_version}.txt
+    2.  requirements-dev.txt
+-   python setup.py test will find and use the first of these files:
+    1.  requirements-test-{target_version}.txt
+    2.  requirements-test.txt
+-   extends the -r keyword to git and mercurial in order to create the last revision number (https://pythonhosted.org/setuptools/setuptools.html#tagging-and-daily-build-or-snapshot-releases)
 
 Incompatibilities:
 
-- distutils2 do not support extra_require keyword (https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies)
+-   distutils2 do not support extra_require keyword (https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies)
 
 
 Currently implemented:
 
-- some of the distutils2 keywords
-- entry_points backport from distutils::
+-   some of the distutils2 keywords
+-   ``entry_points`` backport from distutils::
 
-    [entry_points]
-    distutils.setup_keywords =
-      cardhu = cardhu.core:cardhu
+        [entry_points]
+        distutils.setup_keywords =
+          cardhu = cardhu.core:cardhu
 
+-   setup(cardhu=True) will loads distutils2 setup.cfg parts
+-   Command hooks: https://pythonhosted.org/Distutils2/distutils/commandhooks.html::
+
+        # file: myhooks.py
+        def my_install_hook(install_cmd):
+            print("Oh la la! Someone is installing my project!")
+    
+    ::
+
+        [install]
+        pre-hook.project = myhooks.my_install_hook
 
 
 Usage
@@ -65,10 +76,13 @@ And then your setup.cfg must be like this::
 Distutils2
 ----------
 
-    see http://alexis.notmyidea.org/distutils2/setupcfg.html
+    see http://alexis.notmyidea.org/distutils2/setupcfg.html, Distutils2_
 
 
 Pip and wheels
 --------------
 
     see ...
+
+
+.. _Distutils2: https://pythonhosted.org/Distutils2/distutils/commandhooks.html
