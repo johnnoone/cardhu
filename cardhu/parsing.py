@@ -4,7 +4,7 @@
 
 """
 
-__all__ = ['ConfigParser']
+__all__ = ['ConfigParser', 'parse_string', 'parse_multi', 'parse_file', 'parse_csv']
 
 try:
     from configparser import SafeConfigParser, NoOptionError, NoSectionError, ParsingError
@@ -19,9 +19,26 @@ from textwrap import dedent
 logger = logging.getLogger(__name__)
 
 
+def parse_string(parser, src):
+    return parser.get(*src)
+
+
+def parse_multi(parser, src):
+    return parser.getmulti(*src)
+
+
+def parse_file(parser, src):
+    return parser.getfile(*src)
+
+
+def parse_csv(parser, src):
+    return parser.getcsv(*src)
+
+
 class ConfigParser(object):
     comments_marker = ('#', ';')
-    comment_line = re.compile('^\s*(#|;)\s*(?P<comment>.+)').match
+    comment_matcher = re.compile('^\s*(#|;)\s*(?P<comment>.+)').match
+    keyval_matcher = re.compile('^(?P<name>\S+)\s*=\s*(?P<value>.+?)?\s*$').match
 
     def __init__(self, defaults=None, tab_indent=4):
         """
@@ -39,8 +56,18 @@ class ConfigParser(object):
 
         return self._read(contents)
 
+    def read_comment(self, value):
+        matches = self.comment_matcher(value)
+        if matches:
+            return matches.group('comment')
+
+    def read_keyval(self, value):
+        matches = self.keyval_matcher(value)
+        if matches:
+            return matches.group('name'), matches.group('value')
+        return None, None
+
     def _read(self, contents):
-        print(contents)
         data = defaultdict(OrderedDict)
 
         section = None
@@ -54,7 +81,7 @@ class ConfigParser(object):
 
         for i, line in enumerate(contents.splitlines(False)):
             line = clean(line)
-            comment = self.comment_line(line)
+            comment = self.comment_matcher(line)
             if comment:
                 logger.debug('got comment', comment.group('comment'))
                 continue
@@ -66,21 +93,24 @@ class ConfigParser(object):
                 continue
             elif line and line[0] != ' ':
                 # an option_name?
-                tmp = line.strip()
-                if tmp.endswith('='):
+                n, v = self.read_keyval(line)
+                if not n:
+                    break
+
+                if n and v in ('', None):
                     # an open option
-                    option_name = tmp[:-1].strip()
+                    option_name = n
                     option_value = WaitingValue(section, option_name)
                     options[option_name] = option_value
                     continue
-                elif '=' in tmp:
+                elif n and v:
                     # a self clausing option
-                    option_name, _, option_value = tmp.partition('=')
-                    options[option_name.strip()] = InlinedValue(section,
-                                                                option_name,
-                                                                option_value.strip())
+                    option_name, option_value = n, v
+                    options[n] = InlinedValue(section, n, v)
+                    option_name, option_value = None, None
                     continue
-            elif isinstance(option_value, WaitingValue):
+                raise ParsingError(repr(line), i, option_value)
+            if isinstance(option_value, WaitingValue):
                 # a waiting value!
                 option_value = MultilineValue(section,
                                               option_name,

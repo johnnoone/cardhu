@@ -1,3 +1,8 @@
+"""
+    Cardhu structures
+    ~~~~~~~~~~~~~~~~~
+"""
+
 __all__ = ['DefaultGetDict', 'IgnoreDict']
 
 from collections import defaultdict

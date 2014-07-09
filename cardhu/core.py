@@ -1,7 +1,13 @@
+"""
+    Cardhu core
+    ~~~~~~~~~~~
+
+"""
+
 from distutils import log
 from distutils.errors import DistutilsSetupError
+from .structures import DefaultGetDict, IgnoreDict
 from .util import cfg_to_args
-from .coll import DefaultGetDict, IgnoreDict
 
 
 finalized = set()

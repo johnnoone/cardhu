@@ -17,22 +17,7 @@ except ImportError:
     pass
 from contextlib import contextmanager
 from .errors import LoadError
-from .parsing import ConfigParser
-
-def string_type(parser, src):
-    return parser.get(*src)
-
-
-def multi_type(parser, src):
-    return parser.getmulti(*src)
-
-
-def file_type(parser, src):
-    return parser.getfile(*src)
-
-
-def comma_type(parser, src):
-    return parser.getcsv(*src)
+from .parsing import ConfigParser, parse_string, parse_multi, parse_file, parse_csv
 
 
 def assign(name):
@@ -57,37 +42,41 @@ def assign_cmds(config, dest, value, dist):
     dest['cmdclass'] = cmds
 
 
+def assign_pkg_data(config, dest, value):
+    dest.setdefault('extra_files', defaultdict(dict))
+    dest['extra_files'][''].update(value)
+
 DISTUTILS2_FORMATS = (
-    (('global', 'commands'), multi_type),
-    (('global', 'compilers'), multi_type),
-    (('global', 'setup_hook'), multi_type),
-    (('metadata', 'name'), string_type),
-    (('metadata', 'version'), string_type),
-    (('metadata', 'platform'), multi_type),
-    (('metadata', 'supported-platform'), multi_type),
-    (('metadata', 'summary'), string_type),
-    (('metadata', 'description'), string_type),
-    (('metadata', 'description-file'), file_type),
-    (('metadata', 'keywords'), comma_type),
-    (('metadata', 'home-page'), string_type),
-    (('metadata', 'download-url'), string_type),
-    (('metadata', 'author'), string_type),
-    (('metadata', 'author-email'), string_type),
-    (('metadata', 'maintainer'), string_type),
-    (('metadata', 'maintainer-email'), string_type),
-    (('metadata', 'license'), string_type),
-    (('metadata', 'classifiers'), multi_type),
-    (('metadata', 'requires-dist'), multi_type),
-    (('metadata', 'provides-dist'), multi_type),
-    (('metadata', 'obsoletes-dist'), multi_type),
-    (('metadata', 'requires-python'), multi_type),
-    (('metadata', 'requires-externals'), multi_type),
-    (('metadata', 'project-url'), multi_type),
-    (('files', 'packages_root'), string_type),
-    (('files', 'packages'), multi_type),
-    (('files', 'modules'), multi_type),
-    (('files', 'scripts'), multi_type),
-    (('files', 'extra_files'), multi_type),
+    (('global', 'commands'), parse_multi),
+    (('global', 'compilers'), parse_multi),
+    (('global', 'setup_hook'), parse_multi),
+    (('metadata', 'name'), parse_string),
+    (('metadata', 'version'), parse_string),
+    (('metadata', 'platform'), parse_multi),
+    (('metadata', 'supported-platform'), parse_multi),
+    (('metadata', 'summary'), parse_string),
+    (('metadata', 'description'), parse_string),
+    (('metadata', 'description-file'), parse_file),
+    (('metadata', 'keywords'), parse_csv),
+    (('metadata', 'home-page'), parse_string),
+    (('metadata', 'download-url'), parse_string),
+    (('metadata', 'author'), parse_string),
+    (('metadata', 'author-email'), parse_string),
+    (('metadata', 'maintainer'), parse_string),
+    (('metadata', 'maintainer-email'), parse_string),
+    (('metadata', 'license'), parse_string),
+    (('metadata', 'classifiers'), parse_multi),
+    (('metadata', 'requires-dist'), parse_multi),
+    (('metadata', 'provides-dist'), parse_multi),
+    (('metadata', 'obsoletes-dist'), parse_multi),
+    (('metadata', 'requires-python'), parse_multi),
+    (('metadata', 'requires-externals'), parse_multi),
+    (('metadata', 'project-url'), parse_multi),
+    (('files', 'packages_root'), parse_string),
+    (('files', 'packages'), parse_multi),
+    (('files', 'modules'), parse_multi),
+    (('files', 'scripts'), parse_multi),
+    (('files', 'extra_files'), parse_multi),
 )
 
 EXTENSION_FIELDS = (
@@ -133,10 +122,10 @@ D2TO1 = (
     (('metadata', 'requires-externals'), None),
     (('metadata', 'project-url'), None),
     (('files', 'packages_root'), assign_pkg_dir),
-    (('files', 'packages'), None),  # packages
-    (('files', 'modules'), None),  # py_modules
-    (('files', 'scripts'), None),
-    (('files', 'extra_files'), None),
+    (('files', 'packages'), assign('packages')),
+    (('files', 'modules'), assign('py_modules')),
+    (('files', 'scripts'), assign('scripts')),
+    (('files', 'extra_files'), assign_pkg_data),
 )
 
 
@@ -156,13 +145,10 @@ def parse_entry_points(parser, dist1):
         return
     ep = {}
     for name in parser.options('entry_points'):
-        ep[name] = multi_type(parser, ('entry_points', name))
+        ep[name] = parse_multi(parser, ('entry_points', name))
     if ep:
         dist1.setdefault('entry_points', {})
         dist1['entry_points'].update(ep)
-    print('----')
-    print(dist1['entry_points'])
-    print('----')
 
 
 def parse_extension(parser, dist1):
@@ -177,7 +163,7 @@ def parse_extension(parser, dist1):
         for option in parser.options(section):
             if option not in EXTENSION_FIELDS:
                 continue
-            value = multi_type(parser, (section, option))
+            value = parse_multi(parser, (section, option))
             if not value:
                 continue
             if option == 'define_macros':
@@ -220,7 +206,7 @@ def cfg_to_args(path='setup.cfg', dist=None):
 
     with packages(package_dir):
         if parser.has_option('global', 'setup_hook'):
-            for target in multi_type(parser, ('global', 'setup_hook')):
+            for target in parse_multi(parser, ('global', 'setup_hook')):
                 load(target)(config)
 
     # convert to distutils
@@ -322,8 +308,6 @@ def wrap_commands(dist1, dist):
     subparser = ConfigParser()
     here = os.path.abspath(os.path.dirname(__file__))
     subparser.read(os.path.join(here, 'common.cfg'))
-
-    print(subparser.sections())
 
     commands = set(command_list)
     commands.update(cmd for cmd, _ in dist.get_command_list())
