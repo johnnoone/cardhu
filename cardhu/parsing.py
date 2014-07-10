@@ -38,7 +38,6 @@ def parse_csv(parser, src):
 class ConfigParser(object):
     comments_marker = ('#', ';')
     comment_matcher = re.compile('^\s*(#|;)\s*(?P<comment>.+)').match
-    keyval_matcher = re.compile('^(?P<name>\S+)\s*=\s*(?P<value>.+?)?\s*$').match
 
     def __init__(self, defaults=None, tab_indent=4):
         """
@@ -62,10 +61,7 @@ class ConfigParser(object):
             return matches.group('comment')
 
     def read_keyval(self, value):
-        matches = self.keyval_matcher(value)
-        if matches:
-            return matches.group('name'), matches.group('value')
-        return None, None
+        return read_keyval(value)
 
     def _read(self, contents):
         data = defaultdict(OrderedDict)
@@ -220,7 +216,7 @@ class ConfigParser(object):
             return False
         raise ValueError('cannot use it as a boolean value')
 
-    def getmulti(self, section, option):
+    def getmulti(self, section, option, nested=False):
         """
         A convenience method which coerces the option in the specified section
         to a list value.
@@ -238,11 +234,47 @@ class ConfigParser(object):
 
         """
         data = self.get(section, option)
-        if '\n' not in data and '=' not in data:
+        if '\n' not in data and self.read_keyval(data)[0] is None:
             # oneliner version
             return data.strip().split()
-        # nested version
-        return [element.strip() for element in data.strip().split('\n')]
+
+        # block version
+        if not nested:
+            return [element for element in data.strip().split('\n')]
+
+        def walk(data):
+            """docstring for walk"""
+            response = []
+            option_name = None
+            option_value = None
+            for element in data.split('\n'):
+                if element and element.startswith(' '):
+                    option_value.append(element)
+                    continue
+                if option_name:
+                    response.append({option_name: walk(dedent('\n'.join(option_value)))})
+                    option_name = None
+                    option_value = None
+
+                n, v = self.read_keyval(element)
+                if not n:
+                    response.append(element)
+                    option_name = None
+                    option_value = None
+                    continue
+                elif v:
+                    response.append({n: v})
+                    option_name = None
+                    option_value = None
+                    continue
+                option_name = n
+                option_value = []
+
+            if option_name:
+                response.append({option_name: walk(dedent('\n'.join(option_value)))})
+
+            return response
+        return walk(data)
 
     def getfile(self, section, option):
         """
@@ -309,3 +341,23 @@ class WaitingValue(object):
 
     def resolve(self):
         return None
+
+
+keyval_matcher = re.compile("""
+    ^(?P<key>.+?)
+    \s*
+    (?<![<>=!])=
+    \s*
+    (?P<value>.+?)?
+    \s*$
+
+""", re.X).match
+
+
+def read_keyval(data):
+    """docstring for read_keyval"""
+    matches = keyval_matcher(data)
+    if not matches:
+        return None, None
+    else:
+        return matches.group('key'), matches.group('value')

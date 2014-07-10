@@ -1,7 +1,7 @@
 cardhu
 ======
 
-Setup tools extension, that can talks Distutils2_ setup.cfg, pip requirements file ...
+Extends setupools_ in order to parse Distutils2_ setup.cfg, pip requirements file ...
 This project is largely inspired by the d2to1_ library.
 
 Usage
@@ -17,7 +17,7 @@ In your setup.py, the only requirement is::
         cardhu=True
     )
 
-And then your setup.cfg must be like this::
+And then your minimal setup.cfg must be like this::
 
     [metadata]
     name = cardhu
@@ -30,7 +30,8 @@ And then your setup.cfg must be like this::
         distutils
     [files]
     packages = cardhu
-
+    
+    
 
 Implementation
 --------------
@@ -55,10 +56,10 @@ Implementation
 
 -   extends the -r keyword to git and mercurial in order to create the last revision number (https://pythonhosted.org/setuptools/setuptools.html#tagging-and-daily-build-or-snapshot-releases)
 
+-   implement the distutils2 resources, based on the `sysconfig module`_.
 
 **Incompatibilities:**
 
--   distutils2 do not support extra_require keyword (https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies)
 -   Options with `environment markers`_ are not implemented yet.
 
 
@@ -83,8 +84,17 @@ Implementation
         [install]
         pre-hook.project = myhooks.my_install_hook
 
--   parsed config use https://docs.python.org/2/library/configparser.html#ConfigParser.SafeConfigParser
-    so magic interpolation.
+-   Custom ConfigParser, in order to play well with multi values.
+
+-   Distutils2_ do not support extra_require keyword (https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies), so added this under::
+
+        [metadata]
+        requires-extra =
+          reST = docutils >= 0.3
+          python_version >= "2.7" =
+            six
+            foo
+
 
 Distutils2
 ----------
@@ -102,3 +112,5 @@ Pip and wheels
 .. _`environment markers`: http://legacy.python.org/dev/peps/pep-0345/#environment-markers
 .. _`setup.cfg`: http://alexis.notmyidea.org/distutils2/setupcfg.html
 .. _d2to1: https://pypi.python.org/pypi/d2to1
+.. _setupools: https://pythonhosted.org/setuptools/setuptools.html
+.. _`sysconfig module`: https://docs.python.org/3.4/library/sysconfig.html
