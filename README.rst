@@ -33,10 +33,20 @@ Allows you to use a Distutils2_ setup.cfg like configuration file::
 
 This lib also allows to hook your setuptools commands::
 
+    # local hook
     [install]
 
     pre-hook.cardhu = cardhu.hooks.pre_install
     post-hook.cardhu = cardhu.hooks.pre_install
+
+    # global hook
+    [entry_points]
+
+    cardhu.pre_hooks =
+      install = cardhu.hooks:pre_install
+      develop = cardhu.hooks:pre_develop
+
+
 
 This lib expose more features, for example, the development requirements will be automatically installed when using ``python setup.py develop``::
 
@@ -44,31 +54,28 @@ This lib expose more features, for example, the development requirements will be
     requires-dev =
       docutils >= 0.3
 
+Or the same before running a test::
+
+    [metadata]
+    requires-test =
+        py.test
+
 
 Implementation
 --------------
 
 **Goals:**
 
--   use Distutils2_ `setup.cfg`_ files
--   python setup.py install will find and use the first of these files
+-   Implement the full Distutils2_ `setup.cfg`_ files
+-   Implement the Distutils2_ resources, based on the `sysconfig module`_.
+-   Make ``python setup.py (develop|install|tests)`` more easy, by loading
+    requirements files::
 
-    1.  requirements-{target_version}.txt
-    2.  requirements.txt
-
--   python setup.py develop will find and use the first of these files
-
-    1.  requirements-dev-{target_version}.txt
-    2.  requirements-dev.txt
-
--   python setup.py test will find and use the first of these files
-
-    1.  requirements-test-{target_version}.txt
-    2.  requirements-test.txt
-
+    1.  requirements-{dev|test}-{target_version}.txt
+    2.  requirements-{dev|test}.txt
+    3.  requirements.txt
 -   extends the -r keyword to git and mercurial in order to create the last revision number (https://pythonhosted.org/setuptools/setuptools.html#tagging-and-daily-build-or-snapshot-releases)
-
--   implement the distutils2 resources, based on the `sysconfig module`_.
+-   Automate changelog.rst and authors.rst files completion.
 
 **Incompatibilities:**
 

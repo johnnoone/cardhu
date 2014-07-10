@@ -10,6 +10,7 @@ from collections import defaultdict
 from setuptools.command import __all__ as command_list
 from setuptools.dist import Distribution
 from setuptools.extension import Extension
+import pkg_resources
 
 try:
     from importlib import import_module
@@ -182,7 +183,6 @@ def parse_extension(parser, dist1):
 
 
 def parse_extras_require(parser, dist1):
-    print(parser._sections)
     if not parser.has_option('metadata', 'requires-extra'):
         return
 
@@ -194,7 +194,6 @@ def parse_extras_require(parser, dist1):
 
 
 def parse_dev_requires(parser, dist1):
-    print(parser._sections)
     if not parser.has_option('metadata', 'requires-dev'):
         return
 
@@ -202,6 +201,16 @@ def parse_dev_requires(parser, dist1):
     if data:
         dist1.setdefault('dev_requires', [])
         dist1['dev_requires'].extend(data)
+
+
+def parse_test_requires(parser, dist1):
+    if not parser.has_option('metadata', 'requires-test'):
+        return
+
+    data = parser.getmulti('metadata', 'requires-test')
+    if data:
+        dist1.setdefault('tests_require', [])
+        dist1['tests_require'].extend(data)
 
 
 def cfg_to_args(path='setup.cfg', dist=None):
@@ -336,7 +345,7 @@ def wrap_commands(dist1, dist):
 
     subparser = ConfigParser()
     here = os.path.abspath(os.path.dirname(__file__))
-    subparser.read(os.path.join(here, 'common.cfg'))
+    # subparser.read(os.path.join(here, 'common.cfg'))
 
     commands = set(command_list)
     commands.update(cmd for cmd, _ in dist.get_command_list())
@@ -354,14 +363,6 @@ def wrap_commands(dist1, dist):
                 pre_hook[key[9:]] = value
             elif key.startswith('post_hook.'):
                 post_hook[key[9:]] = value
-
-        # reinject local hooks
-        if subparser.has_section(cmd):
-            for key, value in subparser.items(cmd):
-                if key.startswith('pre-hook.'):
-                    pre_hook[key[9:]] = ('cardhu:setup.cfg', value)
-                elif key.startswith('post-hook.'):
-                    post_hook[key[9:]] = ('cardhu:setup.cfg', value)
 
         dist1['cmdclass'][cmd] = hook_command(cls, pre_hook, post_hook)
 
@@ -388,6 +389,10 @@ class HookedCommand(object):
         self.run_hook('post_hook')
 
     def run_hook(self, hookname):
+        for ep in pkg_resources.iter_entry_points('cardhu.{}s'.format(hookname)):
+            if ep.name == self.get_command_name():
+                ep.load()(self)
+
         hooks = getattr(self, hookname, {})
         for alias, (src, module) in hooks.items():
             try:
