@@ -17,7 +17,7 @@ In your setup.py, the only requirement is::
         cardhu=True
     )
 
-And then your minimal setup.cfg must be like this::
+Allows you to use a Distutils2_ setup.cfg like configuration file::
 
     [metadata]
     name = cardhu
@@ -30,8 +30,20 @@ And then your minimal setup.cfg must be like this::
         distutils
     [files]
     packages = cardhu
-    
-    
+
+This lib also allows to hook your setuptools commands::
+
+    [install]
+
+    pre-hook.cardhu = cardhu.hooks.pre_install
+    post-hook.cardhu = cardhu.hooks.pre_install
+
+This lib expose more features, for example, the development requirements will be automatically installed when using ``python setup.py develop``::
+
+    [metadata]
+    requires-dev =
+      docutils >= 0.3
+
 
 Implementation
 --------------

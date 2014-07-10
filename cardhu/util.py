@@ -188,9 +188,20 @@ def parse_extras_require(parser, dist1):
 
     data = parser.getmulti('metadata', 'requires-extra', nested=True)
     if data:
-        dist1.setdefault('extra_require', {})
+        dist1.setdefault('extras_require', {})
         for elt in data:
-            dist1['extra_require'].update(elt)
+            dist1['extras_require'].update(elt)
+
+
+def parse_dev_requires(parser, dist1):
+    print(parser._sections)
+    if not parser.has_option('metadata', 'requires-dev'):
+        return
+
+    data = parser.getmulti('metadata', 'requires-dev')
+    if data:
+        dist1.setdefault('dev_requires', [])
+        dist1['dev_requires'].extend(data)
 
 
 def cfg_to_args(path='setup.cfg', dist=None):
@@ -227,6 +238,9 @@ def cfg_to_args(path='setup.cfg', dist=None):
 
     # addendum to distutils extras_require
     parse_extras_require(parser, dist1)
+
+    # addendum to distutils dev_requires
+    parse_dev_requires(parser, dist1)
 
     # addendum to distutils entry_points
     parse_entry_points(parser, dist1)

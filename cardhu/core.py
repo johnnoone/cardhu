@@ -56,3 +56,13 @@ def cardhu(dist, attr, value):
 
     ignore = ['pre_hook.*', 'post_hook.*']
     dist.command_options = DefaultGetDict(lambda: IgnoreDict(ignore))
+
+
+def dev_requires(dist, attr, value):
+    """
+    Implements the actual dev_requires setup() keyword.
+    :param dist: setuptools.dist.Distribution obj
+    :param attr: dev_requires
+    :param value: value of dev_requires
+    """
+    pass
